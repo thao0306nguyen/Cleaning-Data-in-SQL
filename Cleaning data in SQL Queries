@@ -1,0 +1,108 @@
+
+/*
+
+Cleaning Data in SQL Queries
+
+*/
+
+SELECT * FROM Retail_Transaction_Dataset;
+-----------------------------------------------------------------------------------------------------------------
+
+--STANDARDIZE DATE FORMAT
+
+SELECT TransactionDate, CONVERT(Date, TransactionDate) as ConvertedTransactionDate
+FROM Retail_Transaction_Dataset;
+
+UPDATE Retail_Transaction_Dataset
+SET TransactionDate=CONVERT(Date, TransactionDate);
+
+ALTER TABLE Retail_Transaction_Dataset
+ADD AdjustedTransactionDate Date;
+
+SELECT * FROM Retail_Transaction_Dataset;
+
+UPDATE Retail_Transaction_Dataset
+SET AdjustedTransactionDate = CONVERT(Date, TransactionDate);
+
+SELECT * FROM Retail_Transaction_Dataset;
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+--BREAKING OUT STORE LOCATION INTO INDIVIDUAL COLUMNS (ADDRESS + CITY, STATES, ZIP CODE)
+
+SELECT * FROM Retail_Transaction_Dataset;
+
+SELECT 
+    CASE 
+        WHEN CHARINDEX(',', StoreLocation) > 0 
+        THEN SUBSTRING(StoreLocation, 1, CHARINDEX(',', StoreLocation) - 1)
+        ELSE StoreLocation
+    END AS Address,
+	
+	CASE
+		WHEN CHARINDEX(',', StoreLocation)>0 
+	    THEN SUBSTRING(StoreLocation, CHARINDEX(',', StoreLocation)+1, 3)
+		ELSE StoreLocation
+	END AS State,
+	CASE
+		WHEN CHARINDEX(' ', REVERSE(StoreLocation)) > 0
+		THEN SUBSTRING(StoreLocation, LEN(StoreLocation) - CHARINDEX(' ', REVERSE(StoreLocation)) + 2, LEN(StoreLocation))
+		ELSE ' ' 
+	END AS ZipCode
+
+FROM 
+    Retail_Transaction_Dataset;
+
+
+ALTER TABLE Retail_Transaction_Dataset
+ADD StoreAddress NVARCHAR(255);
+
+UPDATE Retail_Transaction_Dataset
+SET StoreAddress=
+	CASE 
+        WHEN CHARINDEX(',', StoreLocation) > 0 
+        THEN SUBSTRING(StoreLocation, 1, CHARINDEX(',', StoreLocation) - 1)
+        ELSE StoreLocation
+    END;
+
+ALTER TABLE Retail_Transaction_Dataset
+ADD State NVARCHAR(255);
+
+UPDATE Retail_Transaction_Dataset
+SET State=
+	CASE
+		WHEN CHARINDEX(',', StoreLocation)>0 
+	    THEN SUBSTRING(StoreLocation, CHARINDEX(',', StoreLocation)+1, 3)
+		ELSE StoreLocation
+	END; 
+ALTER TABLE Retail_Transaction_Dataset
+ADD ZipCode NVARCHAR(15);
+
+UPDATE Retail_Transaction_Dataset
+SET ZipCode=
+	CASE
+		WHEN CHARINDEX(' ', REVERSE(StoreLocation)) > 0
+		THEN SUBSTRING(StoreLocation, LEN(StoreLocation) - CHARINDEX(' ', REVERSE(StoreLocation)) + 2, LEN(StoreLocation))
+		ELSE ' ' 
+	END;
+
+
+--------------------------------------------------------------------------------------------------------------------------------
+--CREATE DISCOUNT PERCENTAGE COLUMN
+
+SELECT * FROM Retail_Transaction_Dataset;
+
+SELECT*, (DiscountApplied/TotalAmount)*100 as DiscountPercentage FROM Retail_Transaction_Dataset
+ORDER BY DiscountPercentage DESC ;
+
+ALTER TABLE Retail_Transaction_Dataset
+ADD DiscountPercentage DECIMAL(10,2)
+
+UPDATE Retail_Transaction_Dataset
+SET DiscountPercentage=(DiscountApplied/TotalAmount)*100;
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+--DROP UNNECESSARY COLUMNS
+
+ALTER TABLE Retail_Transaction_Dataset
+DROP COLUMN TransactionDate, StoreLocation;
